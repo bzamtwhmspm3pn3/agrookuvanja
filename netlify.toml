@@ -1,0 +1,25 @@
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "build"
+
+[build.environment]
+  REACT_APP_API_URL = "https://seu-backend-node.com/api"
+  REACT_APP_PYTHON_API_URL = "https://seu-backend-python.com"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://seu-backend-node.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/python/*"
+  to = "https://seu-backend-python.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
