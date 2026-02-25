@@ -1,0 +1,70 @@
+/* src/index.css - CSS PURO, sem Tailwind */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f3f4f6;
+}
+
+/* Cores da AGROOKUVANJA */
+:root {
+  --verde-alface: #1A4D2E;
+  --verde-pimenta: #82B74D;
+  --verde-claro: #E8F0E8;
+}
+
+/* Classes utilitárias */
+.bg-verde-alface { background-color: var(--verde-alface); }
+.bg-verde-pimenta { background-color: var(--verde-pimenta); }
+.bg-verde-claro { background-color: var(--verde-claro); }
+.text-verde-alface { color: var(--verde-alface); }
+.text-verde-pimenta { color: var(--verde-pimenta); }
+.text-branco { color: #ffffff; }
+
+/* Botões */
+.btn-primary {
+  background-color: var(--verde-pimenta);
+  color: var(--verde-alface);
+  font-weight: bold;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-primary:hover {
+  background-color: #94C76D;
+}
+
+.btn-secondary {
+  background-color: var(--verde-alface);
+  color: white;
+  font-weight: bold;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-secondary:hover {
+  background-color: #2D6A4F;
+}
+
+/* Cards */
+.card {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+}
