@@ -7,11 +7,11 @@ import {
   Sprout, ChevronRight, Phone
 } from 'lucide-react';
 
-// IMPORTANDO AS FOTOS REAIS DA EQUIPE
+// IMPORTANDO AS FOTOS REAIS DA equipa
 import fotoPaulo from '../assets/equipa/paulo.jpeg';
 import fotoIsaac from '../assets/equipa/isaac.jpeg';
 import fotoTiago from '../assets/equipa/tiago.jpeg';
-import fotoVenancio from '../assets/equipa/venancio.jpg';
+import fotoVenancio from '../assets/equipa/venancio.jpeg';
 import fotoGracas from '../assets/equipa/graças.jpeg';
 import fotoChela from '../assets/equipa/chela.jpeg';
 import fotoDavid from '../assets/equipa/david.png';
@@ -31,7 +31,7 @@ const cores = {
   verdeClaro: '#E8F0E8'
 };
 
-// Dados da equipe em ORDEM ALFABÉTICA
+// Dados da equipa em ORDEM ALFABÉTICA
 const teamMembers = [
   {
     id: 1,
@@ -58,7 +58,7 @@ const teamMembers = [
     nome: "David Bernardo Manito Teles",
     cargo: "Técnico Agrónomo",
     foto: fotoDavid,
-    bio: "Técnico agrônomo especializado em culturas tropicais e validação em campo das soluções desenvolvidas pela equipe.",
+    bio: "Técnico agrônomo especializado em culturas tropicais e validação em campo das soluções desenvolvidas pela equipa",
     whatsapp: "923456789",
     habilidades: ["Agronomia", "Culturas Tropicais", "Experimentação", "Campo"],
     cor: "#95D5B2"
@@ -88,7 +88,7 @@ const teamMembers = [
     nome: "Paulo Manuel Miguel de Oliveira",
     cargo: "Gestor de Projectos",
     foto: fotoPaulo,
-    bio: "Líder visionário com experiência em gestão de projetos agrícolas e tecnológicos. Coordena a equipe AGROOKUVANJA.",
+    bio: "Líder visionário com experiência em gestão de projetos agrícolas e tecnológicos. Coordena a equipa AGROOKUVANJA.",
     whatsapp: "933599209",
     habilidades: ["Gestão", "Liderança", "Agronegócio", "Inovação"],
     cor: "#1A4D2E"
@@ -490,7 +490,7 @@ export default function QuemSomos() {
           </p>
           
           <p style={{ color: '#4B5563', lineHeight: 1.8 }}>
-            Nossa equipe multidisciplinar une desenvolvedores, designers, agrônomos e gestores 
+            Nossa Equipa multidisciplinar une desenvolvedores, designers, agrônomos e gestores 
             com um objetivo comum: <strong>reduzir perdas e aumentar a produtividade</strong>.
           </p>
           
@@ -512,7 +512,7 @@ export default function QuemSomos() {
                 />
               ))}
             </div>
-            <span style={{ color: '#6B7280' }}>Equipe de 8 especialistas</span>
+            <span style={{ color: '#6B7280' }}>equipa de 8 especialistas</span>
           </div>
         </div>
         
@@ -538,14 +538,14 @@ export default function QuemSomos() {
         </div>
       </motion.div>
 
-      {/* ===== EQUIPE ===== */}
+      {/* ===== equipa ===== */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         style={{ textAlign: 'center', marginBottom: '40px' }}
       >
         <h2 style={{ fontSize: '2.5rem', fontWeight: 'bold', color: cores.verdeAlface, marginBottom: '15px' }}>
-          Nossa Equipe
+          Nossa Equipa
         </h2>
         <p style={{ color: '#6B7280', maxWidth: '600px', margin: '0 auto' }}>
           8 profissionais dedicados a transformar a agricultura angolana
@@ -1057,7 +1057,7 @@ export default function QuemSomos() {
               cursor: 'pointer'
             }}
           >
-            Fale com a equipe
+            Fale com a equipa
           </motion.button>
         </div>
       </motion.div>
