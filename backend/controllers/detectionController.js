@@ -1,7 +1,7 @@
 // backend/controllers/detectionController.js
 const pythonService = require('../services/pythonService');
 const rService = require('../services/rService');
-const Detection = require('../models/Detection');
+const Detection = require('../models/detection');
 const User = require('../models/user');
 
 exports.detectFromImage = async (req, res, next) => {
