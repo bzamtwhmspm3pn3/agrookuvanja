@@ -1,0 +1,25 @@
+# backend/render.yaml
+type: web
+name: agrookuvanja-backend
+env: node
+region: frankfurt
+plan: free
+buildCommand: pip install -r requirements.txt
+startCommand: uvicorn app:app --host 0.0.0.0 --port $PORThealthCheckPath: /health
+envVars:
+  - key: PYTHON_API_URL
+    value: https://agrookuvanja-python.onrender.com
+  - key: NODE_VERSION
+    value: 18.17.0
+  - key: PYTHON_VERSION
+    value: 3.11.0
+  - key: NODE_ENV
+    value: production
+  - key: PORT
+    value: 10000
+  - key: MONGO_URI
+    sync: false      # Será definida manualmente no dashboard
+  - key: JWT_SECRET
+    sync: false
+  - key: FRONTEND_URL
+    value: https://https://agrookuvanja.netlify.app   # ajuste conforme seu frontend

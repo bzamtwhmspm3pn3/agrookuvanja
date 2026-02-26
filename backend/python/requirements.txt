@@ -1,4 +1,4 @@
-# Versões estáveis e compatíveis
+# backend/python/requirements.txt
 fastapi==0.115.0
 uvicorn[standard]==0.30.1
 opencv-python==4.10.0.84
