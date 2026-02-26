@@ -1,11 +1,10 @@
-// backend/routes/deteccoes.js
 const express = require('express');
 const router = express.Router();
 const Deteccao = require('../models/deteccao');
-const auth = require('../middleware/auth');
+const authMiddleware = require('../middleware/auth');
 
 // Guardar uma nova deteção
-router.post('/', auth, async (req, res) => {
+router.post('/', authMiddleware.protect, async (req, res) => {
   try {
     const deteccao = new Deteccao({
       usuarioId: req.userId,
@@ -30,28 +29,13 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Buscar deteções do utilizador
-router.get('/', auth, async (req, res) => {
+router.get('/', authMiddleware.protect, async (req, res) => {
   try {
-    const { 
-      limit = 50, 
-      page = 1,
-      resolvido,
-      tipo,
-      inicio,
-      fim
-    } = req.query;
-    
+    const { limit = 50, page = 1, resolvido, tipo, inicio, fim } = req.query;
     const query = { usuarioId: req.userId };
     
-    // Filtros opcionais
-    if (resolvido !== undefined) {
-      query.resolvido = resolvido === 'true';
-    }
-    
-    if (tipo) {
-      query['detections.class'] = tipo;
-    }
-    
+    if (resolvido !== undefined) query.resolvido = resolvido === 'true';
+    if (tipo) query['detections.class'] = tipo;
     if (inicio || fim) {
       query.timestamp = {};
       if (inicio) query.timestamp.$gte = new Date(inicio);
@@ -86,7 +70,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Marcar deteção como resolvida
-router.patch('/:id/resolver', auth, async (req, res) => {
+router.patch('/:id/resolver', authMiddleware.protect, async (req, res) => {
   try {
     const deteccao = await Deteccao.findOne({
       _id: req.params.id,
@@ -120,7 +104,7 @@ router.patch('/:id/resolver', auth, async (req, res) => {
 });
 
 // Apagar deteção
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', authMiddleware.protect, async (req, res) => {
   try {
     const result = await Deteccao.deleteOne({
       _id: req.params.id,
@@ -149,7 +133,7 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 // Obter estatísticas
-router.get('/estatisticas', auth, async (req, res) => {
+router.get('/estatisticas', authMiddleware.protect, async (req, res) => {
   try {
     const stats = await Deteccao.aggregate([
       { $match: { usuarioId: req.userId } },
@@ -163,7 +147,6 @@ router.get('/estatisticas', auth, async (req, res) => {
       }}
     ]);
     
-    // Contagem por tipo de praga
     const porTipo = await Deteccao.aggregate([
       { $match: { usuarioId: req.userId } },
       { $unwind: '$detections' },
