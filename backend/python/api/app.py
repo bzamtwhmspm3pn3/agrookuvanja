@@ -20,14 +20,25 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="AgroOkuvanja Python API", version="1.0.0")
 
-# Configurar CORS
+# Configurar CORS - VERSÃO PARA DEMONSTRAÇÃO (permite qualquer origem)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
+    allow_origins=["*"],  # Permite todas as origens (temporário)
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Alternativa mais segura (para depois da apresentação):
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=[
+#         "http://localhost:3000",
+#         "https://agrookuvanja.netlify.app"
+#     ],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 # Inicializar detector
 try:
