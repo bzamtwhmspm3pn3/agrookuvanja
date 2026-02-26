@@ -6,7 +6,7 @@ class PythonService {
     this.baseURL = process.env.PYTHON_API_URL || 'http://localhost:8001';
     this.client = axios.create({
       baseURL: this.baseURL,
-      timeout: 30000,
+      timeout: 60000, // aumentado para 60 segundos (antes 30000)
     });
   }
 
@@ -15,7 +15,6 @@ class PythonService {
       const formData = new FormData();
       formData.append('file', imageBuffer, { filename });
 
-      // Corrigido: usa '/detect' em vez de '/api/python/detect/image'
       const response = await this.client.post('/detect', formData, {
         headers: formData.getHeaders(),
       });
@@ -33,7 +32,6 @@ class PythonService {
 
   async predictLosses(data) {
     try {
-      // Este endpoint pode não existir; ajuste se necessário ou remova a funcionalidade
       const response = await this.client.post('/predict/losses', data);
       return response.data;
     } catch (error) {
@@ -44,7 +42,6 @@ class PythonService {
 
   async analyzeRisk(data) {
     try {
-      // Este endpoint pode não existir; ajuste se necessário
       const response = await this.client.post('/analyze/risk', data);
       return response.data;
     } catch (error) {
@@ -54,18 +51,31 @@ class PythonService {
   }
 
   async getCameraStream() {
-    // Ajuste se houver um endpoint de stream
     return `${this.baseURL}/detect/stream`;
   }
 
   async healthCheck() {
+    console.log('🔍 Health check Python - a iniciar...');
+    console.log('   URL base (this.baseURL):', this.baseURL);
+    console.log('   PYTHON_API_URL env:', process.env.PYTHON_API_URL);
+    console.log('   A fazer GET para:', this.baseURL + '/health');
     try {
-      // Usa o endpoint /health que existe
       const response = await this.client.get('/health');
-      // Assume que retorna algo como { "status": "ok" } ou similar
+      console.log('✅ Resposta do Python - status:', response.status);
+      console.log('   Dados:', response.data);
       return { status: 'online', ...response.data };
     } catch (error) {
-      console.error('❌ Erro no health check do Python:', error.message);
+      console.error('❌ Erro no health check do Python:');
+      console.error('   Mensagem:', error.message);
+      if (error.code) console.error('   Código:', error.code);
+      if (error.response) {
+        console.error('   Status HTTP:', error.response.status);
+        console.error('   Dados da resposta:', error.response.data);
+      } else if (error.request) {
+        console.error('   Pedido feito mas sem resposta (timeout?)');
+      } else {
+        console.error('   Erro na configuração da requisição:', error.message);
+      }
       return { status: 'offline', error: error.message };
     }
   }
