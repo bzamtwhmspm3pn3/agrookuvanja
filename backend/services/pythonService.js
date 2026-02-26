@@ -1,4 +1,3 @@
-// backend/services/pythonService.js
 const axios = require('axios');
 const FormData = require('form-data');
 
@@ -16,20 +15,26 @@ class PythonService {
       const formData = new FormData();
       formData.append('file', imageBuffer, { filename });
 
-      const response = await this.client.post('/api/python/detect/image', formData, {
+      // Corrigido: usa '/detect' em vez de '/api/python/detect/image'
+      const response = await this.client.post('/detect', formData, {
         headers: formData.getHeaders(),
       });
 
       return response.data;
     } catch (error) {
       console.error('❌ Erro Python detect:', error.message);
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Data:', error.response.data);
+      }
       throw new Error('Falha na detecção de imagem');
     }
   }
 
   async predictLosses(data) {
     try {
-      const response = await this.client.post('/api/python/predict/losses', data);
+      // Este endpoint pode não existir; ajuste se necessário ou remova a funcionalidade
+      const response = await this.client.post('/predict/losses', data);
       return response.data;
     } catch (error) {
       console.error('❌ Erro Python predict:', error.message);
@@ -39,7 +44,8 @@ class PythonService {
 
   async analyzeRisk(data) {
     try {
-      const response = await this.client.post('/api/python/analyze/risk', data);
+      // Este endpoint pode não existir; ajuste se necessário
+      const response = await this.client.post('/analyze/risk', data);
       return response.data;
     } catch (error) {
       console.error('❌ Erro Python risk:', error.message);
@@ -48,14 +54,18 @@ class PythonService {
   }
 
   async getCameraStream() {
-    return `${this.baseURL}/api/python/detect/stream`;
+    // Ajuste se houver um endpoint de stream
+    return `${this.baseURL}/detect/stream`;
   }
 
   async healthCheck() {
     try {
-      const response = await this.client.get('/api/python/health');
+      // Usa o endpoint /health que existe
+      const response = await this.client.get('/health');
+      // Assume que retorna algo como { "status": "ok" } ou similar
       return { status: 'online', ...response.data };
     } catch (error) {
+      console.error('❌ Erro no health check do Python:', error.message);
       return { status: 'offline', error: error.message };
     }
   }
