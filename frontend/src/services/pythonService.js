@@ -1,8 +1,7 @@
 ﻿// frontend/src/services/pythonService.js
 import axios from 'axios';
 
-const PYTHON_API_URL = process.env.REACT_APP_PYTHON_API_URL || 'http://localhost:8001';
-
+const PYTHON_API_URL = process.env.REACT_APP_PYTHON_API_URL || 'https://agrookuvanja-python.onrender.com';
 const pythonApi = axios.create({
   baseURL: PYTHON_API_URL,
   timeout: 60000, // 60 segundos
