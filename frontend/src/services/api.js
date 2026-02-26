@@ -1,7 +1,7 @@
-﻿// src/services/api.js
-import axios from 'axios';
+﻿import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// 👇 ALTERE ESTA LINHA para a URL fixa
+const API_URL = 'https://agrookuvanja-node.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -27,7 +27,6 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expirado ou inválido
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/';
