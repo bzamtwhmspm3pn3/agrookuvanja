@@ -711,13 +711,13 @@ export default function DeteccaoPragas({
   };
 
   const verificarPython = async () => {
-    try {
-      const status = await checkPythonHealth();
-      setPythonStatus(status.status === 'healthy' ? 'online' : 'offline');
-    } catch {
-      setPythonStatus('offline');
-    }
-  };
+  try {
+    const status = await checkPythonHealth();
+    setPythonStatus(status.online ? 'online' : 'offline');
+  } catch {
+    setPythonStatus('offline');
+  }
+};
 
   const falarResultado = useCallback((dados) => {
     if (!audioAtivo || !dados) return;
