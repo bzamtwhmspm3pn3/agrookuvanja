@@ -1,17 +1,22 @@
 ﻿// src/components/Header.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Menu, X, ChevronDown, LogOut, User, 
   Settings, HelpCircle, Bell, Home, BarChart3,
   Target, Leaf, Phone, Mail, MapPin, Sprout,
-  Award, Star, MessageCircle
+  Award, Star, MessageCircle, Wifi, WifiOff,
+  Sun, Moon, Clock, Calendar
 } from 'lucide-react';
+import logoAgrookuvanja from '../assets/logoagrookuvanja.jpeg';
+import favicon from '../assets/favicon.ico';
 
 const cores = {
   verdeAlface: '#1A4D2E',
   verdePimenta: '#82B74D',
-  verdeClaro: '#E8F0E8'
+  verdeClaro: '#E8F0E8',
+  vermelho: '#EF4444',
+  textoClaro: '#6B7280'
 };
 
 export default function Header({ 
@@ -25,10 +30,37 @@ export default function Header({
   onProfileClick,
   onSettingsClick,
   onHelpClick,
-  onEstatisticasClick
+  onEstatisticasClick,
+  alternarTema,
+  temaAtual = 'light'
 }) {
   const [menuAberto, setMenuAberto] = useState(false);
   const [perfilAberto, setPerfilAberto] = useState(false);
+  const [online, setOnline] = useState(navigator.onLine);
+  const [dataHora, setDataHora] = useState(new Date());
+
+  // Monitorar status da internet
+  useEffect(() => {
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Atualizar relógio
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDataHora(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Header para visitantes (não logados)
   if (!usuarioLogado) {
@@ -64,16 +96,85 @@ export default function Header({
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
             <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ repeat: Infinity, duration: 3 }}
-              style={{ fontSize: '28px' }}
+              animate={{ rotate: [0, 5, -5, 0] }}
+              transition={{ repeat: Infinity, duration: 4 }}
+              style={{
+                width: '45px',
+                height: '45px',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                border: `2px solid ${cores.verdePimenta}`,
+                boxShadow: `0 4px 8px ${cores.verdeAlface}40`
+              }}
             >
-              🌱
+              <img 
+                src={logoAgrookuvanja} 
+                alt="AgroOkuvanja Logo" 
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover'
+                }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.innerHTML = '🌱';
+                }}
+              />
             </motion.div>
-            <span style={{ fontSize: '22px', fontWeight: 'bold' }}>
-              AGRO<span style={{ color: cores.verdePimenta }}>OKUVANJA</span>
-            </span>
+
+            <div>
+              <span style={{ fontSize: '22px', fontWeight: 'bold' }}>
+                AGRO<span style={{ color: cores.verdePimenta }}>OKUVANJA</span>
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <motion.img 
+                  src={favicon} 
+                  alt="" 
+                  style={{ width: '14px', height: '14px', opacity: 0.8 }}
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
+                />
+                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)', display: 'block' }}>
+                  Monitoramento Agrícola
+                </span>
+              </div>
+            </div>
           </motion.div>
+
+          {/* Status Online e Relógio */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <motion.div
+              animate={{ scale: online ? [1, 1.1, 1] : 1 }}
+              transition={{ repeat: online ? Infinity : 0, duration: 2 }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 10px',
+                background: online ? 'rgba(130, 183, 77, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                borderRadius: '20px',
+                border: `1px solid ${online ? cores.verdePimenta : cores.vermelho}`
+              }}
+            >
+              {online ? (
+                <Wifi size={14} color={cores.verdePimenta} />
+              ) : (
+                <WifiOff size={14} color={cores.vermelho} />
+              )}
+              <span style={{ fontSize: '11px', fontWeight: 'bold', color: online ? cores.verdePimenta : cores.vermelho }}>
+                {online ? 'Online' : 'Offline'}
+              </span>
+            </motion.div>
+
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '12px', fontWeight: 'bold' }}>
+                {dataHora.toLocaleDateString('pt-PT')}
+              </div>
+              <div style={{ fontSize: '10px', opacity: 0.8 }}>
+                {dataHora.toLocaleTimeString('pt-PT')}
+              </div>
+            </div>
+          </div>
 
           {/* Navegação Desktop */}
           <div style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
@@ -82,48 +183,18 @@ export default function Header({
             <div style={{ display: 'flex', gap: '20px' }}>
               <button
                 onClick={onQuemSomosClick}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'rgba(255,255,255,0.8)',
-                  cursor: 'pointer',
-                  fontSize: '0.95rem',
-                  padding: '5px 0',
-                  borderBottom: '2px solid transparent',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.color = 'white';
-                  e.target.style.borderBottomColor = cores.verdePimenta;
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.color = 'rgba(255,255,255,0.8)';
-                  e.target.style.borderBottomColor = 'transparent';
-                }}
+                style={navLinkStyle}
+                onMouseEnter={(e) => e.target.style.color = 'white'}
+                onMouseLeave={(e) => e.target.style.color = 'rgba(255,255,255,0.8)'}
               >
                 Sobre
               </button>
               
               <button
                 onClick={onContactClick}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'rgba(255,255,255,0.8)',
-                  cursor: 'pointer',
-                  fontSize: '0.95rem',
-                  padding: '5px 0',
-                  borderBottom: '2px solid transparent',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.color = 'white';
-                  e.target.style.borderBottomColor = cores.verdePimenta;
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.color = 'rgba(255,255,255,0.8)';
-                  e.target.style.borderBottomColor = 'transparent';
-                }}
+                style={navLinkStyle}
+                onMouseEnter={(e) => e.target.style.color = 'white'}
+                onMouseLeave={(e) => e.target.style.color = 'rgba(255,255,255,0.8)'}
               >
                 Contacto
               </button>
@@ -143,15 +214,14 @@ export default function Header({
                   borderRadius: '30px',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  fontSize: '0.95rem',
-                  transition: 'all 0.3s'
+                  fontSize: '0.95rem'
                 }}
               >
                 Entrar
               </motion.button>
 
               <motion.button
-                whileHover={{ scale: 1.05, backgroundColor: '#94C76D' }}
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onRegisterClick}
                 style={{
@@ -203,17 +273,17 @@ export default function Header({
               }}
               className="mobile-menu"
             >
-              <button onClick={() => { onQuemSomosClick(); setMenuAberto(false); }} style={mobileButtonStyle}>
+              <button onClick={() => { onQuemSomosClick?.(); setMenuAberto(false); }} style={mobileButtonStyle}>
                 Sobre
               </button>
-              <button onClick={() => { onContactClick(); setMenuAberto(false); }} style={mobileButtonStyle}>
+              <button onClick={() => { onContactClick?.(); setMenuAberto(false); }} style={mobileButtonStyle}>
                 Contacto
               </button>
               <hr style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '10px 0' }} />
-              <button onClick={() => { onLoginClick(); setMenuAberto(false); }} style={mobileButtonStyle}>
+              <button onClick={() => { onLoginClick?.(); setMenuAberto(false); }} style={mobileButtonStyle}>
                 Entrar
               </button>
-              <button onClick={() => { onRegisterClick(); setMenuAberto(false); }} style={{...mobileButtonStyle, background: cores.verdePimenta, color: cores.verdeAlface, borderRadius: '8px'}}>
+              <button onClick={() => { onRegisterClick?.(); setMenuAberto(false); }} style={{...mobileButtonStyle, background: cores.verdePimenta, color: cores.verdeAlface, borderRadius: '8px'}}>
                 Criar Conta
               </button>
             </motion.div>
@@ -252,94 +322,101 @@ export default function Header({
         <motion.div
           whileHover={{ scale: 1.05 }}
           style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-          onClick={() => onDashboardClick()}
+          onClick={onDashboardClick}
         >
-          <span style={{ fontSize: '24px' }}>🌱</span>
-          <span style={{ fontSize: '20px', fontWeight: 'bold' }}>AGRO<span style={{ color: cores.verdePimenta }}>OKUVANJA</span></span>
+          <motion.div
+            animate={{ rotate: [0, 5, -5, 0] }}
+            transition={{ repeat: Infinity, duration: 4 }}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              overflow: 'hidden',
+              border: `2px solid ${cores.verdePimenta}`
+            }}
+          >
+            <img 
+              src={logoAgrookuvanja} 
+              alt="AgroOkuvanja" 
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+            />
+          </motion.div>
+          <div>
+            <span style={{ fontSize: '20px', fontWeight: 'bold' }}>
+              AGRO<span style={{ color: cores.verdePimenta }}>OKUVANJA</span>
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <img src={favicon} alt="" style={{ width: '12px', height: '12px' }} />
+              <span style={{ fontSize: '9px', opacity: 0.8 }}>Dashboard</span>
+            </div>
+          </div>
         </motion.div>
+
+        {/* Status e Relógio */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <motion.div
+            animate={{ scale: online ? [1, 1.1, 1] : 1 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '4px 10px',
+              background: online ? 'rgba(130, 183, 77, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+              borderRadius: '20px'
+            }}
+          >
+            {online ? <Wifi size={14} color={cores.verdePimenta} /> : <WifiOff size={14} color={cores.vermelho} />}
+          </motion.div>
+
+          <div style={{ textAlign: 'right', borderRight: `1px solid ${cores.verdePimenta}`, paddingRight: '15px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{dataHora.toLocaleDateString('pt-PT')}</div>
+            <div style={{ fontSize: '10px', opacity: 0.8 }}>{dataHora.toLocaleTimeString('pt-PT')}</div>
+          </div>
+
+          {/* Toggle Tema */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={alternarTema}
+            style={{
+              background: 'rgba(255,255,255,0.1)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'white'
+            }}
+          >
+            {temaAtual === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+          </motion.button>
+        </div>
 
         {/* Navegação Principal */}
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           
           {/* Dashboard */}
-          <button
-            onClick={() => onDashboardClick()}
-            style={{
-              background: 'rgba(255,255,255,0.1)',
-              border: 'none',
-              color: 'white',
-              padding: '8px 15px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              fontSize: '0.95rem',
-              transition: 'all 0.3s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-          >
+          <button onClick={onDashboardClick} style={navButtonStyle}>
             <Home size={16} />
-            Dashboard
+            <span style={{ marginLeft: '5px' }}>Dashboard</span>
           </button>
 
           {/* Estatísticas */}
-          <button
-            onClick={() => {
-              if (onEstatisticasClick) onEstatisticasClick();
-              else onDashboardClick();
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'rgba(255,255,255,0.8)',
-              padding: '8px 15px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              fontSize: '0.95rem',
-              transition: 'all 0.3s'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.color = 'white';
-              e.target.style.background = 'rgba(255,255,255,0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.color = 'rgba(255,255,255,0.8)';
-              e.target.style.background = 'none';
-            }}
-          >
+          <button onClick={onEstatisticasClick} style={navButtonStyle}>
             <BarChart3 size={16} />
-            Estatísticas
           </button>
 
           {/* Notificações */}
-          <button
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'white',
-              padding: '8px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              position: 'relative'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-          >
-            <Bell size={18} />
-            <span style={{
-              position: 'absolute',
-              top: 2,
-              right: 2,
-              width: 8,
-              height: 8,
-              background: cores.vermelho || '#EF4444',
-              borderRadius: '50%'
-            }} />
+          <button style={navButtonStyle}>
+            <Bell size={16} />
+            <span style={notificationBadgeStyle} />
           </button>
 
           {/* Perfil Dropdown */}
@@ -355,8 +432,7 @@ export default function Header({
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                fontSize: '0.95rem'
+                gap: '8px'
               }}
             >
               <div style={{
@@ -370,10 +446,10 @@ export default function Header({
                 color: cores.verdeAlface,
                 fontWeight: 'bold'
               }}>
-                {usuarioLogado.username?.charAt(0).toUpperCase() || 'U'}
+                {usuarioLogado?.username?.charAt(0).toUpperCase() || 'U'}
               </div>
-              <span>{usuarioLogado.username || 'Utilizador'}</span>
-              <ChevronDown size={16} />
+              <span style={{ fontSize: '14px' }}>{usuarioLogado?.username || 'Utilizador'}</span>
+              <ChevronDown size={14} />
             </button>
 
             <AnimatePresence>
@@ -382,99 +458,36 @@ export default function Header({
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  style={{
-                    position: 'absolute',
-                    top: '45px',
-                    right: 0,
-                    background: 'white',
-                    borderRadius: '10px',
-                    boxShadow: '0 5px 20px rgba(0,0,0,0.2)',
-                    width: '220px',
-                    overflow: 'hidden',
-                    zIndex: 1001
-                  }}
+                  style={dropdownMenuStyle}
                 >
-                  {/* Cabeçalho do perfil */}
-                  <div style={{ 
-                    padding: '15px', 
-                    borderBottom: '1px solid #eee',
-                    background: `linear-gradient(135deg, ${cores.verdeClaro}, white)`
-                  }}>
-                    <p style={{ fontWeight: 'bold', color: cores.verdeAlface, marginBottom: '3px' }}>
-                      {usuarioLogado.username}
-                    </p>
-                    <p style={{ fontSize: '0.8rem', color: '#666' }}>{usuarioLogado.email}</p>
+                  <div style={dropdownHeaderStyle}>
+                    <img src={favicon} alt="" style={{ width: '20px', height: '20px', marginRight: '8px' }} />
+                    <div>
+                      <p style={{ fontWeight: 'bold', color: cores.verdeAlface }}>{usuarioLogado?.username}</p>
+                      <p style={{ fontSize: '0.8rem', color: '#666' }}>{usuarioLogado?.email}</p>
+                    </div>
                   </div>
                   
-                  {/* Botões do perfil - TODOS FUNCIONAIS */}
-                  <button 
-                    onClick={() => {
-                      if (onProfileClick) onProfileClick();
-                      setPerfilAberto(false);
-                    }}
-                    style={dropdownItemStyle}
-                  >
-                    <User size={16} color={cores.verdeAlface} />
-                    <span>Meu Perfil</span>
+                  <button onClick={() => { onProfileClick?.(); setPerfilAberto(false); }} style={dropdownItemStyle}>
+                    <User size={16} color={cores.verdeAlface} /> Meu Perfil
                   </button>
                   
-                  <button 
-                    onClick={() => {
-                      if (onEstatisticasClick) onEstatisticasClick();
-                      else onDashboardClick();
-                      setPerfilAberto(false);
-                    }}
-                    style={dropdownItemStyle}
-                  >
-                    <Award size={16} color={cores.verdeAlface} />
-                    <span>Minhas Conquistas</span>
+                  <button onClick={() => { onEstatisticasClick?.(); setPerfilAberto(false); }} style={dropdownItemStyle}>
+                    <Award size={16} color={cores.verdeAlface} /> Conquistas
                   </button>
                   
-                  <button 
-                    onClick={() => {
-                      if (onSettingsClick) onSettingsClick();
-                      setPerfilAberto(false);
-                    }}
-                    style={dropdownItemStyle}
-                  >
-                    <Settings size={16} color={cores.verdeAlface} />
-                    <span>Configurações</span>
+                  <button onClick={() => { onSettingsClick?.(); setPerfilAberto(false); }} style={dropdownItemStyle}>
+                    <Settings size={16} color={cores.verdeAlface} /> Configurações
                   </button>
                   
-                  <button 
-                    onClick={() => {
-                      if (onHelpClick) onHelpClick();
-                      setPerfilAberto(false);
-                    }}
-                    style={dropdownItemStyle}
-                  >
-                    <MessageCircle size={16} color={cores.verdeAlface} />
-                    <span>Ajuda & Suporte</span>
-                  </button>
-                  
-                  <button 
-                    onClick={() => {
-                      if (onContactClick) onContactClick();
-                      setPerfilAberto(false);
-                    }}
-                    style={dropdownItemStyle}
-                  >
-                    <Phone size={16} color={cores.verdeAlface} />
-                    <span>Contactar Suporte</span>
+                  <button onClick={() => { onHelpClick?.(); setPerfilAberto(false); }} style={dropdownItemStyle}>
+                    <HelpCircle size={16} color={cores.verdeAlface} /> Ajuda
                   </button>
                   
                   <hr style={{ margin: '5px 0', borderColor: '#eee' }} />
                   
-                  {/* Botão de Logout */}
-                  <button 
-                    onClick={() => {
-                      onLogout();
-                      setPerfilAberto(false);
-                    }}
-                    style={{...dropdownItemStyle, color: '#DC2626'}}
-                  >
-                    <LogOut size={16} color="#DC2626" />
-                    <span>Sair</span>
+                  <button onClick={onLogout} style={{...dropdownItemStyle, color: cores.vermelho}}>
+                    <LogOut size={16} color={cores.vermelho} /> Sair
                   </button>
                 </motion.div>
               )}
@@ -505,26 +518,19 @@ export default function Header({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            style={{
-              overflow: 'hidden',
-              padding: menuAberto ? '20px' : 0,
-              background: '#0A2E1A',
-              marginTop: '12px',
-              borderRadius: '10px'
-            }}
-            className="mobile-menu"
+            style={mobileMenuStyle}
           >
             <button onClick={() => { onDashboardClick(); setMenuAberto(false); }} style={mobileButtonStyle}>
               <Home size={16} style={{ marginRight: '10px' }} /> Dashboard
             </button>
-            <button onClick={() => { if (onProfileClick) onProfileClick(); setMenuAberto(false); }} style={mobileButtonStyle}>
+            <button onClick={() => { onProfileClick?.(); setMenuAberto(false); }} style={mobileButtonStyle}>
               <User size={16} style={{ marginRight: '10px' }} /> Meu Perfil
             </button>
-            <button onClick={() => { if (onSettingsClick) onSettingsClick(); setMenuAberto(false); }} style={mobileButtonStyle}>
+            <button onClick={() => { onSettingsClick?.(); setMenuAberto(false); }} style={mobileButtonStyle}>
               <Settings size={16} style={{ marginRight: '10px' }} /> Configurações
             </button>
             <hr style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '10px 0' }} />
-            <button onClick={() => { onLogout(); setMenuAberto(false); }} style={{...mobileButtonStyle, color: '#FF6B6B'}}>
+            <button onClick={onLogout} style={{...mobileButtonStyle, color: cores.vermelho}}>
               <LogOut size={16} style={{ marginRight: '10px' }} /> Sair
             </button>
           </motion.div>
@@ -534,19 +540,59 @@ export default function Header({
   );
 }
 
-// Estilos reutilizáveis
-const mobileButtonStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  width: '100%',
-  padding: '12px',
+// Estilos
+const navLinkStyle = {
   background: 'none',
   border: 'none',
-  color: 'white',
-  textAlign: 'left',
+  color: 'rgba(255,255,255,0.8)',
   cursor: 'pointer',
-  fontSize: '1rem',
-  borderRadius: '5px'
+  fontSize: '0.95rem',
+  padding: '5px 0',
+  borderBottom: '2px solid transparent',
+  transition: 'all 0.3s'
+};
+
+const navButtonStyle = {
+  background: 'rgba(255,255,255,0.1)',
+  border: 'none',
+  color: 'white',
+  padding: '8px 15px',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  fontSize: '0.95rem',
+  transition: 'all 0.3s'
+};
+
+const notificationBadgeStyle = {
+  position: 'absolute',
+  top: 2,
+  right: 2,
+  width: 8,
+  height: 8,
+  background: cores.vermelho,
+  borderRadius: '50%'
+};
+
+const dropdownMenuStyle = {
+  position: 'absolute',
+  top: '45px',
+  right: 0,
+  background: 'white',
+  borderRadius: '10px',
+  boxShadow: '0 5px 20px rgba(0,0,0,0.2)',
+  width: '240px',
+  overflow: 'hidden',
+  zIndex: 1001
+};
+
+const dropdownHeaderStyle = {
+  padding: '15px',
+  borderBottom: '1px solid #eee',
+  background: `linear-gradient(135deg, ${cores.verdeClaro}, white)`,
+  display: 'flex',
+  alignItems: 'center'
 };
 
 const dropdownItemStyle = {
@@ -561,6 +607,28 @@ const dropdownItemStyle = {
   fontSize: '0.9rem',
   color: '#333',
   transition: 'background 0.2s'
+};
+
+const mobileButtonStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  width: '100%',
+  padding: '12px',
+  background: 'none',
+  border: 'none',
+  color: 'white',
+  textAlign: 'left',
+  cursor: 'pointer',
+  fontSize: '1rem',
+  borderRadius: '5px'
+};
+
+const mobileMenuStyle = {
+  overflow: 'hidden',
+  padding: '20px',
+  background: '#0A2E1A',
+  marginTop: '12px',
+  borderRadius: '10px'
 };
 
 // Adicionar estilos CSS
@@ -586,7 +654,7 @@ style.innerHTML = `
   }
   
   button:hover {
-    background-color: rgba(0,0,0,0.05) !important;
+    background-color: rgba(255,255,255,0.15) !important;
   }
   
   [style*="dropdownItemStyle"]:hover {

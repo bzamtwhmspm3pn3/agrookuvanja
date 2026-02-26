@@ -491,8 +491,16 @@ const CameraCard = ({ camera, onAtivar, onEditar, onRemover, onVerStream }) => {
   );
 };
 
-// Visualizador de stream CORRIGIDO - APENAS DETEÇÕES REAIS
-const StreamViewer = ({ camera, onClose }) => {
+// Visualizador de stream com TODOS os callbacks (MODIFICADO)
+const StreamViewer = ({ 
+  camera, 
+  onClose,
+  onDeteccaoRoedor,    // Para GestaoRoedores
+  onDeteccaoAve,       // Para GestaoAves
+  onDeteccaoGeral,     // Para Dashboard/Relatórios
+  onAtualizarMapaRisco, // Para MapaRisco
+  onAtualizarDashboard  // Para atualizar dashboard
+}) => {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [audioAtivo, setAudioAtivo] = useState(true);
@@ -505,7 +513,7 @@ const StreamViewer = ({ camera, onClose }) => {
   const canvasRef = useRef(null);
   const intervalRef = useRef(null);
 
-  // Função para capturar frame e analisar com o Python
+  // Função para capturar frame e analisar com o Python (MODIFICADA)
   const capturarEAnalisar = async () => {
     if (!imgRef.current || analisando) return;
 
@@ -528,21 +536,84 @@ const StreamViewer = ({ camera, onClose }) => {
       
       // SÓ mostrar deteções se houver resultados REAIS
       if (resultado.detections && resultado.detections.length > 0) {
+        // Criar objeto completo da deteção
         const novaDeteccao = {
           id: Date.now(),
-          praga: resultado.detections[0].class_pt || 'Praga detectada',
-          hora: new Date().toLocaleTimeString(),
-          confianca: Math.round(resultado.detections[0].confidence * 100),
-          todas: resultado.detections.map(d => d.class_pt).join(', ')
+          timestamp: new Date().toISOString(),
+          localizacao: camera.localizacao || 'Área da câmara',
+          camera: camera.nome,
+          cameraId: camera.id,
+          detections: resultado.detections.map(d => ({
+            ...d,
+            class_pt: nomesPortugues[d.class] || d.class
+          })),
+          total_count: resultado.detections.length,
+          confianca_media: resultado.detections.reduce((acc, d) => acc + d.confidence, 0) / resultado.detections.length
         };
         
-        setUltimaDeteccao(novaDeteccao);
+        setUltimaDeteccao({
+          praga: novaDeteccao.detections[0].class_pt,
+          hora: new Date().toLocaleTimeString(),
+          confianca: Math.round(novaDeteccao.detections[0].confidence * 100)
+        });
+        
         setContador(prev => prev + 1);
         setHistoricoDeteccoes(prev => [novaDeteccao, ...prev].slice(0, 10));
 
         // Alertas sonoros
         if (audioAtivo && camera.alertasSonoros) {
-          vozService.falar(`Atenção! Detectada ${novaDeteccao.praga} na ${camera.nome}`);
+          const nomes = novaDeteccao.detections.map(d => d.class_pt).join(' e ');
+          vozService.falar(`Atenção! Detectada ${nomes} na ${camera.nome}`);
+        }
+
+        // ENVIAR PARA COMPONENTES ESPECÍFICOS
+        novaDeteccao.detections.forEach(det => {
+          const classe = det.class?.toLowerCase() || '';
+          
+          // 1. Para GestaoRoedores
+          if (classe.includes('rat') || classe.includes('mouse')) {
+            if (onDeteccaoRoedor) {
+              onDeteccaoRoedor({
+                ...det,
+                camera: camera.nome,
+                localizacao: camera.localizacao,
+                timestamp: novaDeteccao.timestamp
+              });
+            }
+          }
+          
+          // 2. Para GestaoAves
+          if (classe.includes('bird') || classe.includes('pigeon')) {
+            if (onDeteccaoAve) {
+              onDeteccaoAve({
+                ...det,
+                camera: camera.nome,
+                localizacao: camera.localizacao,
+                timestamp: novaDeteccao.timestamp
+              });
+            }
+          }
+        });
+        
+        // 3. Para Dashboard/Relatórios (geral)
+        if (onDeteccaoGeral) {
+          onDeteccaoGeral(novaDeteccao);
+        }
+        
+        // 4. Para Mapa de Risco
+        if (onAtualizarMapaRisco) {
+          onAtualizarMapaRisco({
+            localizacao: camera.localizacao,
+            camera: camera.nome,
+            pragas: novaDeteccao.detections,
+            timestamp: novaDeteccao.timestamp,
+            nivelRisco: novaDeteccao.confianca_media > 0.7 ? 'ALTO' : 'MÉDIO'
+          });
+        }
+        
+        // 5. Para atualizar dashboard
+        if (onAtualizarDashboard) {
+          onAtualizarDashboard();
         }
       }
       
@@ -683,7 +754,7 @@ const StreamViewer = ({ camera, onClose }) => {
         <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
 
-      {/* Overlay de deteção - SÓ aparece quando há deteção REAL */}
+      {/* Overlay de deteção */}
       <AnimatePresence>
         {ultimaDeteccao && (
           <motion.div
@@ -728,8 +799,14 @@ const StreamViewer = ({ camera, onClose }) => {
   );
 };
 
-// Componente principal
-export default function ConfiguracaoCameras({ onAtualizarDashboard }) {
+// Componente principal (MODIFICADO - recebe novas props)
+export default function ConfiguracaoCameras({ 
+  onAtualizarDashboard,
+  onDeteccaoRoedor,     // Nova prop
+  onDeteccaoAve,        // Nova prop
+  onDeteccaoGeral,      // Nova prop
+  onAtualizarMapaRisco  // Nova prop
+}) {
   const [cameras, setCameras] = useState([]);
   const [modalAberto, setModalAberto] = useState(false);
   const [cameraEditando, setCameraEditando] = useState(null);
@@ -965,12 +1042,17 @@ export default function ConfiguracaoCameras({ onAtualizarDashboard }) {
         )}
       </AnimatePresence>
 
-      {/* Visualizador de stream */}
+      {/* Visualizador de stream - AGORA COM CALLBACKS */}
       <AnimatePresence>
         {streamAtivo && (
           <StreamViewer
             camera={streamAtivo}
             onClose={() => setStreamAtivo(null)}
+            onDeteccaoRoedor={onDeteccaoRoedor}
+            onDeteccaoAve={onDeteccaoAve}
+            onDeteccaoGeral={onDeteccaoGeral}
+            onAtualizarMapaRisco={onAtualizarMapaRisco}
+            onAtualizarDashboard={onAtualizarDashboard}
           />
         )}
       </AnimatePresence>

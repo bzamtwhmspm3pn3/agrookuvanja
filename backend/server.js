@@ -16,6 +16,7 @@ const profileRoutes = require('./routes/profileRoutes');
 const dashboardRoutes = require("./routes/dashboard");
 const modelosRoutes = require('./routes/modelos');
 const detectionRoutes = require("./routes/detectionRoutes");
+const deteccoesRoutes = require('./routes/deteccoes');
 
 
 // Middleware de erro
@@ -93,6 +94,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use('/api/modelos', modelosRoutes);
 app.use("/api/detection", detectionRoutes);
+app.use('/api/deteccoes', deteccoesRoutes);
 
 // Rota de saúde
 app.get("/api/health", (req, res) => {

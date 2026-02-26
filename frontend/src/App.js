@@ -15,6 +15,8 @@ import {
   X, Instagram, Facebook, Twitter, Linkedin,
   ArrowDown, Rocket, Eye
 } from 'lucide-react';
+import logoAgrookuvanja from './assets/logoagrookuvanja.jpeg';
+import favicon from './assets/favicon.ico';
 
 const cores = {
   verdeAlface: '#1A4D2E',
@@ -568,80 +570,136 @@ function WelcomeSection({ onExplorarClick, onContactClick, onSolucaoClick }) {
         ))}
 
         <div style={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
-            style={{
-              width: '100px',
-              height: '100px',
-              background: 'rgba(255,255,255,0.2)',
-              borderRadius: '30px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 30px',
-              backdropFilter: 'blur(10px)'
-            }}
-          >
-            <Sprout size={50} color="white" />
-          </motion.div>
+  
+  {/* Logo animado - substituindo o Sprout */}
+  <motion.div
+    initial={{ scale: 0, rotate: -180 }}
+    animate={{ scale: 1, rotate: 0 }}
+    transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
+    style={{
+      width: '100px',
+      height: '100px',
+      background: 'white',
+      borderRadius: '30px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      margin: '0 auto 30px',
+      backdropFilter: 'blur(10px)',
+      overflow: 'hidden',
+      border: `3px solid ${cores.verdePimenta}`,
+      boxShadow: `0 10px 30px ${cores.verdeAlface}80`
+    }}
+  >
+    <motion.div
+      animate={{ 
+        rotate: [0, 5, -5, 0],
+        scale: [1, 1.05, 1]
+      }}
+      transition={{ 
+        repeat: Infinity, 
+        duration: 4,
+        ease: "easeInOut"
+      }}
+      style={{
+        width: '100%',
+        height: '100%'
+      }}
+    >
+      <img 
+        src={logoAgrookuvanja} 
+        alt="AgroOkuvanja Logo" 
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover'
+        }}
+        onError={(e) => {
+          e.target.style.display = 'none';
+          e.target.parentElement.innerHTML = '🌱';
+        }}
+      />
+    </motion.div>
+  </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            style={{
-              fontSize: 'clamp(2rem, 6vw, 4rem)',
-              fontWeight: 'bold',
-              color: 'white',
-              marginBottom: '20px',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
-            }}
-          >
-            AGRO<span style={{ color: cores.verdeClaro }}>OKUVANJA</span>
-          </motion.h1>
+  {/* Título */}
+  <motion.h1
+    initial={{ opacity: 0, y: -50 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.4, duration: 0.6 }}
+    style={{
+      fontSize: 'clamp(2rem, 6vw, 4rem)',
+      fontWeight: 'bold',
+      color: 'white',
+      marginBottom: '20px',
+      textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+    }}
+  >
+    AGRO<span style={{ color: cores.verdeClaro }}>OKUVANJA</span>
+  </motion.h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            style={{
-              fontSize: '1.3rem',
-              color: 'rgba(255,255,255,0.9)',
-              maxWidth: '600px',
-              margin: '0 auto 30px'
-            }}
-          >
-            Protegendo colheitas, alimentando o futuro de Angola 🇦🇴
-          </motion.p>
+  {/* Slogan principal (apenas este) */}
+<motion.p
+  initial={{ opacity: 0, y: 50 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.5, duration: 0.6 }}
+  style={{
+    fontSize: '1.5rem',
+    color: 'rgba(255,255,255,0.95)',
+    maxWidth: '600px',
+    margin: '0 auto 30px',
+    fontWeight: '500',
+    textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
+  }}
+>
+  Tecnologia a favor da sua produção 🇦🇴
+</motion.p>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}
-          >
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onExplorarClick}
-              style={{
-                background: 'white',
-                color: cores.verdeAlface,
-                border: 'none',
-                padding: '15px 35px',
-                fontSize: '1.1rem',
-                fontWeight: 'bold',
-                borderRadius: '50px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}
-            >
-              <Rocket size={20} /> Começar Agora
-            </motion.button>
+  {/* Botões de ação */}
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ delay: 0.6 }}
+    style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}
+  >
+    <motion.button
+      whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}
+      whileTap={{ scale: 0.95 }}
+      onClick={onExplorarClick}
+      style={{
+        background: 'white',
+        color: cores.verdeAlface,
+        border: 'none',
+        padding: '15px 35px',
+        fontSize: '1.1rem',
+        fontWeight: 'bold',
+        borderRadius: '50px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        boxShadow: '0 5px 15px rgba(0,0,0,0.1)'
+      }}
+    >
+      Explorar Soluções
+    </motion.button>
+
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      style={{
+        background: 'rgba(255,255,255,0.2)',
+        color: 'white',
+        border: '1px solid rgba(255,255,255,0.3)',
+        padding: '15px 35px',
+        fontSize: '1.1rem',
+        fontWeight: 'bold',
+        borderRadius: '50px',
+        cursor: 'pointer',
+        backdropFilter: 'blur(10px)'
+      }}
+    >
+     </motion.button>
 
             <motion.button
               whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.2)' }}

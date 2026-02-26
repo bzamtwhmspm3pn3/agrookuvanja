@@ -12,6 +12,7 @@ import {
   Home, ChevronLeft, ChevronRight, Settings
 } from 'lucide-react';
 import { detectPestFromImage, checkPythonHealth } from '../../services/pythonService';
+import { deteccaoApi } from '../../services/deteccaoApi'; // ← NOVO IMPORT
 import vozService from '../../services/vozService';
 
 // Cores
@@ -798,6 +799,42 @@ export default function DeteccaoPragas({
     setUsandoCamera(false);
   };
 
+  // Função para guardar no backend
+  const guardarNoBackend = async (dados) => {
+    try {
+      // Verificar se o utilizador está autenticado (pegar do localStorage)
+      const user = JSON.parse(localStorage.getItem('agrookuvanja_user') || '{}');
+      if (!user.id) {
+        console.log('⚠️ Utilizador não autenticado, dados guardados apenas localmente');
+        return;
+      }
+
+      const dadosParaBackend = {
+        usuarioId: user.id,
+        localizacao: dados.localizacao,
+        areaAfetada: dados.areaAfetada,
+        cultura: dados.cultura,
+        perdaEstimada: dados.perdaEstimada,
+        nivelRisco: dados.nivelRisco,
+        total_count: dados.total_count,
+        detections: dados.detections.map(d => ({
+          class: d.class,
+          class_pt: d.class_pt,
+          confidence: d.confidence,
+          bbox: d.bbox || []
+        })),
+        timestamp: dados.timestamp,
+        origem: 'deteccao'
+      };
+
+      const response = await deteccaoApi.salvar(dadosParaBackend);
+      console.log('✅ Deteção guardada no servidor:', response);
+    } catch (error) {
+      console.error('❌ Erro ao guardar no servidor:', error);
+      // Não mostrar erro ao utilizador, apenas log
+    }
+  };
+
   const analisarImagem = async () => {
     if (!imagem) {
       setErro('Selecione uma imagem primeiro');
@@ -858,7 +895,10 @@ export default function DeteccaoPragas({
       setResultado(resultadoCompleto);
       falarResultado(resultadoCompleto);
 
-      // Salvar no histórico
+      // GUARDAR NO BACKEND
+      await guardarNoBackend(resultadoCompleto);
+
+      // Salvar no histórico local
       const novoHistorico = [resultadoCompleto, ...historico].slice(0, 20);
       setHistorico(novoHistorico);
       localStorage.setItem('agrookuvanja_deteccoes', JSON.stringify(novoHistorico));
@@ -910,7 +950,7 @@ export default function DeteccaoPragas({
       if (onEnviarParaMapaRisco) {
         onEnviarParaMapaRisco({
           localizacao: resultadoCompleto.localizacao,
-          coordenadas: { lat: -12.5, lng: 18.5 }, // Coordenadas de exemplo
+          coordenadas: { lat: -12.5, lng: 18.5 },
           pragas: resultadoCompleto.detections,
           nivelRisco: resultadoCompleto.nivelRisco,
           areaAfetada: resultadoCompleto.areaAfetada,
@@ -994,7 +1034,6 @@ export default function DeteccaoPragas({
     if (!classe) return 'Praga não identificada';
     return nomesPortugues[classe.toLowerCase()] || classe;
   };
-
   return (
     <div style={{
       maxWidth: '1200px',
@@ -1596,15 +1635,7 @@ export default function DeteccaoPragas({
                   <Shield size={18} /> Gestão Específica
                 </button>
               )}
-              {onEnviarParaRelatorios && (
-                <button
-                  onClick={() => onEnviarParaRelatorios(resultado)}
-                  style={{...acaoBotaoStyle, background: cores.azulAngola}}
-                >
-                  <FileText size={18} /> Gerar Relatório
-                </button>
-              )}
-            </div>
+          </div>
           </motion.div>
         )}
       </AnimatePresence>

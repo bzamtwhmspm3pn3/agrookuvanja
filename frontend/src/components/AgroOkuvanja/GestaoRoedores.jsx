@@ -1,10 +1,10 @@
 ﻿// src/components/AgroOkuvanja/GestaoRoedores.jsx
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Rat, AlertTriangle, MapPin, Calendar, TrendingUp,
   Volume2, Download, Share2, Filter, CheckCircle,
-  Bell, BellRing, Clock
+  Bell, BellRing, Clock, X, RefreshCw, DollarSign
 } from 'lucide-react';
 import vozService from '../../services/vozService';
 
@@ -14,104 +14,257 @@ const cores = {
   verdeClaro: '#E8F0E8',
   vermelho: '#EF4444',
   amarelo: '#F59E0B',
-  azul: '#3B82F6'
+  azul: '#3B82F6',
+  cinza: '#6B7280',
+  marrom: '#8B4513',
+  sucesso: '#10B981',
+  info: '#3B82F6'
 };
 
-export default function GestaoRoedores({ onAtualizarDashboard }) {
-  const [dados, setDados] = useState(null);
-  const [filtro, setFiltro] = useState('todos');
-  const [carregando, setCarregando] = useState(true);
-  const [audioAtivo, setAudioAtivo] = useState(true);
-
-  useEffect(() => {
-    carregarDados();
-  }, [filtro]);
-
-  const carregarDados = async () => {
-    setCarregando(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+// Função melhorada para identificar roedores
+const isRoedor = (item) => {
+  // Se vier do formato de deteccao (com detections array)
+  if (item.detections && Array.isArray(item.detections)) {
+    return item.detections.some(det => {
+      const classe = det.class?.toLowerCase() || '';
+      const classPt = det.class_pt?.toLowerCase() || '';
+      const nome = det.nome?.toLowerCase() || '';
       
-      setDados({
-        totalDetecoes: 23,
-        ativos: 5,
-        resolvidos: 18,
-        areasCriticas: 3,
-        ultimasOcorrencias: [
-          {
-            id: 1,
-            local: 'Talhão Norte',
-            data: 'Hoje, 10:23',
-            severidade: 'alta',
-            status: 'ativo',
-            area: '2.5 ha'
-          },
-          {
-            id: 2,
-            local: 'Talhão Sul',
-            data: 'Ontem, 15:47',
-            severidade: 'media',
-            status: 'ativo',
-            area: '1.2 ha'
-          },
-          {
-            id: 3,
-            local: 'Talhão Leste',
-            data: 'Ontem, 09:12',
-            severidade: 'baixa',
-            status: 'resolvido',
-            area: '0.8 ha'
-          }
-        ],
-        recomendacoes: [
-          'Instalar armadilhas mecânicas nas áreas críticas',
-          'Aplicar raticida biológico nos talhões Norte e Sul',
-          'Reforçar monitoramento noturno'
-        ],
-        alertas: [
-          'Área crítica detectada no Talhão Norte',
-          'Aumento de 30% na atividade nas últimas 24h'
-        ]
-      });
-    } catch (error) {
-      console.error('Erro:', error);
-    } finally {
-      setCarregando(false);
-    }
-  };
+      return classe.includes('rat') || classe.includes('mouse') || 
+             classPt.includes('rato') || classPt.includes('ratazana') || 
+             classPt.includes('camundongo') || nome.includes('rato');
+    });
+  }
+  
+  // Se vier do formato de alerta (com pragas array)
+  if (item.pragas && Array.isArray(item.pragas)) {
+    return item.pragas.some(p => {
+      const classe = p.class?.toLowerCase() || '';
+      const classPt = p.class_pt?.toLowerCase() || '';
+      
+      return classe.includes('rat') || classe.includes('mouse') || 
+             classPt.includes('rato') || classPt.includes('ratazana');
+    });
+  }
+  
+  // Se vier como deteção simples
+  const classe = item.class?.toLowerCase() || '';
+  const classPt = item.class_pt?.toLowerCase() || '';
+  const nome = item.nome?.toLowerCase() || '';
+  
+  return classe.includes('rat') || classe.includes('mouse') || 
+         classPt.includes('rato') || classPt.includes('ratazana') || 
+         classPt.includes('camundongo') || nome.includes('rato');
+};
 
-  const falarAlerta = () => {
-    if (!audioAtivo || !dados) return;
+// Função para extrair deteções individuais de um item
+// Função para extrair deteções individuais de um item com IDs consistentes
+const extrairDeteccoes = (item) => {
+  const deteccoes = [];
+  const timestamp = item.timestamp || new Date().toISOString();
+  
+  // Se tem detections array (formato da DeteccaoPragas)
+  if (item.detections && Array.isArray(item.detections)) {
+    item.detections.forEach((det, index) => {
+      deteccoes.push({
+        id: `${timestamp}-${det.class}-${index}`, // ID único por índice
+        unique: `${timestamp}-${det.class}-${item.localizacao}`, // Para deduplicação
+        class: det.class,
+        class_pt: det.class_pt || (det.class === 'rat' ? 'Ratazana' : 'Camundongo'),
+        confidence: det.confidence || 0.8,
+        localizacao: item.localizacao || 'Não especificada',
+        timestamp: timestamp,
+        severidade: det.confidence > 0.7 ? 'alta' : det.confidence > 0.4 ? 'media' : 'baixa',
+        status: 'ativo',
+        area: item.areaAfetada || 'Área não especificada',
+        cultura: item.cultura || 'Não especificada',
+        perda: item.perdaEstimada || 0,
+        camera: item.camera
+      });
+    });
+  }
+  
+  // Se tem pragas array (formato do MapaRisco)
+  else if (item.pragas && Array.isArray(item.pragas)) {
+    item.pragas.forEach((p, index) => {
+      deteccoes.push({
+        id: `${timestamp}-${p.class}-${index}`,
+        unique: `${timestamp}-${p.class}-${item.localizacao}`,
+        class: p.class,
+        class_pt: p.class_pt || (p.class === 'rat' ? 'Ratazana' : 'Camundongo'),
+        confidence: p.confidence || 0.7,
+        localizacao: item.localizacao || 'Não especificada',
+        timestamp: timestamp,
+        severidade: item.nivelRisco?.toLowerCase() || 'media',
+        status: 'ativo',
+        area: item.areaAfetada || 'Área não especificada',
+        cultura: item.cultura || 'Não especificada',
+        perda: item.perdaEstimada || 0,
+        camera: item.camera
+      });
+    });
+  }
+  
+  // Formato simples
+  else {
+    deteccoes.push({
+      id: `${timestamp}-${item.class}-0`,
+      unique: `${timestamp}-${item.class}-${item.localizacao}`,
+      class: item.class || 'roedor',
+      class_pt: item.class_pt || (item.class === 'rat' ? 'Ratazana' : 'Camundongo'),
+      confidence: item.confidence || 0.8,
+      localizacao: item.localizacao || 'Não especificada',
+      timestamp: timestamp,
+      severidade: item.severidade || (item.confidence > 0.7 ? 'alta' : 'media'),
+      status: 'ativo',
+      area: item.areaAfetada || 'Área não especificada',
+      cultura: item.cultura || 'Não especificada',
+      perda: item.perdaEstimada || 0,
+      camera: item.camera
+    });
+  }
+  
+  return deteccoes;
+};
+
+export default function GestaoRoedores({ 
+  deteccoesExternas = [],    // Da DeteccaoPragas
+  monitoramentos = [],       // Do MonitoramentoCampo
+  alertasMapa = []           // Do MapaRisco
+}) {
+  const [filtro, setFiltro] = useState('todos');
+  const [audioAtivo, setAudioAtivo] = useState(true);
+  const [deteccoes, setDeteccoes] = useState([]);
+  const [resolvidos, setResolvidos] = useState({});
+
+  // Processar todas as fontes de dados
+  useEffect(() => {
+    const todasDeteccoes = [];
     
-    const mensagem = `Gestão de Roedores. Temos ${dados.ativos} focos ativos. ` +
-      `Áreas críticas: ${dados.areasCriticas}. ` +
-      `Recomendamos ${dados.recomendacoes[0]}`;
+    // Processar deteccoesExternas
+    deteccoesExternas.forEach(item => {
+      if (isRoedor(item)) {
+        todasDeteccoes.push(...extrairDeteccoes(item));
+      }
+    });
+    
+    // Processar monitoramentos
+    monitoramentos.forEach(item => {
+      if (isRoedor(item)) {
+        todasDeteccoes.push(...extrairDeteccoes(item));
+      }
+    });
+    
+    // Processar alertasMapa
+    alertasMapa.forEach(item => {
+      if (isRoedor(item)) {
+        todasDeteccoes.push(...extrairDeteccoes(item));
+      }
+    });
+    
+    // Ordenar por data (mais recentes primeiro)
+    const ordenadas = todasDeteccoes.sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+    );
+    
+    setDeteccoes(ordenadas);
+    
+    // Log para debug
+    console.log(`🟤 Gestão Roedores: ${ordenadas.length} deteções processadas`, ordenadas);
+    
+  }, [deteccoesExternas, monitoramentos, alertasMapa]);
+
+  // Aplicar status resolvido
+  const deteccoesComStatus = useMemo(() => {
+    return deteccoes.map(d => ({
+      ...d,
+      status: resolvidos[d.id] ? 'resolvido' : 'ativo'
+    }));
+  }, [deteccoes, resolvidos]);
+
+  // Calcular estatísticas
+  const estatisticas = useMemo(() => {
+    const ativas = deteccoesComStatus.filter(d => d.status === 'ativo');
+    const criticas = ativas.filter(d => d.severidade === 'alta' || d.severidade === 'critica');
+    const perdaTotal = ativas.reduce((acc, d) => acc + (d.perda || 0), 0);
+    
+    return {
+      totalDetecoes: deteccoesComStatus.length,
+      ativos: ativas.length,
+      resolvidos: deteccoesComStatus.filter(d => d.status === 'resolvido').length,
+      areasCriticas: criticas.length,
+      perdaTotal
+    };
+  }, [deteccoesComStatus]);
+
+  // Filtrar por status/severidade
+  const deteccoesFiltradas = useMemo(() => {
+    let filtradas = deteccoesComStatus;
+    
+    switch(filtro) {
+      case 'ativos':
+        filtradas = filtradas.filter(d => d.status === 'ativo');
+        break;
+      case 'resolvidos':
+        filtradas = filtradas.filter(d => d.status === 'resolvido');
+        break;
+      case 'criticos':
+        filtradas = filtradas.filter(d => 
+          d.status === 'ativo' && (d.severidade === 'alta' || d.severidade === 'critica')
+        );
+        break;
+      default:
+        // 'todos' - mantém todos
+        break;
+    }
+    
+    return filtradas;
+  }, [deteccoesComStatus, filtro]);
+
+  const falarResumo = () => {
+    if (!audioAtivo) return;
+    
+    const mensagem = `Gestão de Roedores. Temos ${estatisticas.ativos} focos ativos. ` +
+      `Áreas críticas: ${estatisticas.areasCriticas}. ` +
+      `Perda estimada de ${estatisticas.perdaTotal.toLocaleString()} kwanzas. ` +
+      (deteccoesFiltradas[0] ? `Última deteção em ${deteccoesFiltradas[0].localizacao}.` : '');
     
     vozService.falar(mensagem);
   };
 
-  if (carregando) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: `3px solid ${cores.verdeClaro}`,
-            borderTopColor: cores.verdePimenta,
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px'
-          }} />
-          <p style={{ color: cores.verdeAlface }}>A carregar dados...</p>
-        </div>
-      </div>
-    );
-  }
+  const marcarComoResolvido = (id) => {
+    setResolvidos(prev => ({ ...prev, [id]: true }));
+    vozService.falar('Ocorrência marcada como resolvida');
+  };
+
+  const getSeveridadeCor = (severidade) => {
+    switch(severidade?.toLowerCase()) {
+      case 'alta':
+      case 'critica':
+        return cores.vermelho;
+      case 'media':
+        return cores.amarelo;
+      default:
+        return cores.verdeAlface;
+    }
+  };
+
+  const getSeveridadeBg = (severidade) => {
+    switch(severidade?.toLowerCase()) {
+      case 'alta':
+      case 'critica':
+        return '#FEF2F2';
+      case 'media':
+        return '#FEF3C7';
+      default:
+        return '#F0FDF4';
+    }
+  };
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
       
+      {/* Cabeçalho */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -125,11 +278,12 @@ export default function GestaoRoedores({ onAtualizarDashboard }) {
         }}
       >
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: cores.verdeAlface }}>
-            🐀 Gestão de Roedores
+          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: cores.verdeAlface, display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Rat size={32} color={cores.marrom} />
+            Gestão de Roedores
           </h1>
           <p style={{ color: '#666', marginTop: '5px' }}>
-            Monitoramento e controlo integrado
+            {estatisticas.totalDetecoes} deteções • {estatisticas.ativos} ativos • Perda: {estatisticas.perdaTotal.toLocaleString()} Kz
           </p>
         </div>
 
@@ -145,15 +299,16 @@ export default function GestaoRoedores({ onAtualizarDashboard }) {
               color: audioAtivo ? cores.verdeAlface : 'white',
               border: 'none',
               borderRadius: '30px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              fontWeight: 'bold'
             }}
           >
             {audioAtivo ? <Volume2 size={18} /> : <Bell size={18} />}
-            {audioAtivo ? 'Áudio Ativo' : 'Alertas'}
+            {audioAtivo ? 'Áudio Ativo' : 'Alertas Mudos'}
           </button>
 
           <button
-            onClick={falarAlerta}
+            onClick={falarResumo}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -163,15 +318,17 @@ export default function GestaoRoedores({ onAtualizarDashboard }) {
               color: 'white',
               border: 'none',
               borderRadius: '30px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              fontWeight: 'bold'
             }}
           >
             <BellRing size={18} />
-            Falar Alerta
+            Falar Resumo
           </button>
         </div>
       </motion.div>
 
+      {/* Cards de estatísticas */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -180,103 +337,165 @@ export default function GestaoRoedores({ onAtualizarDashboard }) {
       }}>
         <motion.div style={statCardStyle}>
           <div style={{ fontSize: '2rem', fontWeight: 'bold', color: cores.verdeAlface }}>
-            {dados.totalDetecoes}
+            {estatisticas.totalDetecoes}
           </div>
           <div style={{ color: '#666' }}>Total de Deteções</div>
         </motion.div>
 
         <motion.div style={statCardStyle}>
           <div style={{ fontSize: '2rem', fontWeight: 'bold', color: cores.amarelo }}>
-            {dados.ativos}
+            {estatisticas.ativos}
           </div>
           <div style={{ color: '#666' }}>Focos Ativos</div>
         </motion.div>
 
         <motion.div style={statCardStyle}>
           <div style={{ fontSize: '2rem', fontWeight: 'bold', color: cores.vermelho }}>
-            {dados.areasCriticas}
+            {estatisticas.areasCriticas}
           </div>
           <div style={{ color: '#666' }}>Áreas Críticas</div>
         </motion.div>
 
         <motion.div style={statCardStyle}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: cores.verdePimenta }}>
-            {dados.resolvidos}
+          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: cores.sucesso }}>
+            {estatisticas.resolvidos}
           </div>
           <div style={{ color: '#666' }}>Resolvidos</div>
         </motion.div>
       </div>
 
+      {/* Filtros */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: '2fr 1fr',
-        gap: '20px',
-        marginBottom: '25px'
+        display: 'flex',
+        gap: '10px',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        alignItems: 'center'
       }}>
-        <div>
-          <h3 style={{ color: cores.verdeAlface, marginBottom: '15px' }}>📍 Últimas Ocorrências</h3>
-          {dados.ultimasOcorrencias.map(ocorrencia => (
-            <motion.div key={ocorrencia.id} style={ocorrenciaCardStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Rat size={20} color={ocorrencia.severidade === 'alta' ? cores.vermelho : cores.amarelo} />
-                <div>
-                  <span style={{ fontWeight: 'bold', color: cores.verdeAlface }}>{ocorrencia.local}</span>
-                  <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                    {ocorrencia.area} • {ocorrencia.data}
+        {['todos', 'ativos', 'resolvidos', 'criticos'].map(tipo => (
+          <button
+            key={tipo}
+            onClick={() => setFiltro(tipo)}
+            style={{
+              padding: '8px 15px',
+              background: filtro === tipo ? cores.verdePimenta : 'white',
+              color: filtro === tipo ? cores.verdeAlface : '#666',
+              border: `1px solid ${cores.verdeClaro}`,
+              borderRadius: '20px',
+              cursor: 'pointer',
+              textTransform: 'capitalize',
+              fontWeight: filtro === tipo ? 'bold' : 'normal'
+            }}
+          >
+            {tipo}
+          </button>
+        ))}
+        <Filter size={20} color="#999" style={{ marginLeft: 'auto' }} />
+      </div>
+
+      {/* Lista de deteções */}
+      {deteccoesFiltradas.length === 0 ? (
+        <div style={{
+          padding: '60px 20px',
+          textAlign: 'center',
+          background: cores.verdeClaro,
+          borderRadius: '15px',
+          color: cores.cinza
+        }}>
+          <Rat size={48} color={cores.cinza} style={{ marginBottom: '15px' }} />
+          <h3 style={{ color: cores.verdeAlface, marginBottom: '10px' }}>Nenhuma deteção de roedores</h3>
+          <p>As deteções de roedores aparecerão aqui automaticamente quando forem identificadas pela IA.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {deteccoesFiltradas.map((deteccao, index) => (
+            <motion.div
+              key={deteccao.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              style={{
+                ...ocorrenciaCardStyle,
+                background: getSeveridadeBg(deteccao.severidade),
+                border: `1px solid ${getSeveridadeCor(deteccao.severidade)}30`,
+                opacity: deteccao.status === 'resolvido' ? 0.7 : 1
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flex: 1 }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  background: 'white',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Rat size={24} color={getSeveridadeCor(deteccao.severidade)} />
+                </div>
+                
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                    <span style={{ fontWeight: 'bold', color: cores.verdeAlface }}>
+                      {deteccao.class_pt}
+                      {deteccao.camera && <span style={{ fontSize: '0.7rem', color: cores.cinza, marginLeft: '5px' }}>({deteccao.camera})</span>}
+                    </span>
+                    <span style={{
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.7rem',
+                      background: deteccao.confidence > 0.7 ? '#FEE2E2' : '#FEF3C7',
+                      color: deteccao.confidence > 0.7 ? cores.vermelho : cores.amarelo
+                    }}>
+                      {Math.round((deteccao.confidence || 0.8) * 100)}%
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '15px', fontSize: '0.8rem', color: '#666', flexWrap: 'wrap' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <MapPin size={12} /> {deteccao.localizacao}
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <Clock size={12} /> {new Date(deteccao.timestamp).toLocaleString()}
+                    </span>
+                    {deteccao.area && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <TrendingUp size={12} /> {deteccao.area}
+                      </span>
+                    )}
+                    {deteccao.perda > 0 && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: cores.vermelho }}>
+                        <DollarSign size={12} /> {deteccao.perda.toLocaleString()} Kz
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
-              <span style={{
-                padding: '4px 8px',
-                background: ocorrencia.status === 'ativo' ? '#FEE2E2' : '#D1FAE5',
-                color: ocorrencia.status === 'ativo' ? cores.vermelho : cores.verdeAlface,
-                borderRadius: '12px',
-                fontSize: '0.8rem'
-              }}>
-                {ocorrencia.status}
-              </span>
+              
+              {deteccao.status !== 'resolvido' && (
+                <button
+                  onClick={() => marcarComoResolvido(deteccao.id)}
+                  style={{
+                    padding: '8px 12px',
+                    background: cores.verdePimenta,
+                    color: cores.verdeAlface,
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  <CheckCircle size={14} /> Resolver
+                </button>
+              )}
             </motion.div>
           ))}
         </div>
-
-        <div>
-          <h3 style={{ color: cores.verdeAlface, marginBottom: '15px' }}>⚠️ Alertas</h3>
-          {dados.alertas.map((alerta, index) => (
-            <motion.div key={index} style={{
-              padding: '15px',
-              background: '#FEF2F2',
-              borderRadius: '12px',
-              border: '1px solid #FECACA',
-              marginBottom: '10px'
-            }}>
-              <AlertTriangle size={18} color={cores.vermelho} />
-              <p style={{ color: '#991B1B', fontSize: '0.9rem', marginTop: '5px' }}>{alerta}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      <motion.div style={{
-        background: cores.verdeClaro,
-        borderRadius: '15px',
-        padding: '20px'
-      }}>
-        <h3 style={{ color: cores.verdeAlface, marginBottom: '15px' }}>💡 Recomendações</h3>
-        {dados.recomendacoes.map((rec, index) => (
-          <div key={index} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '10px',
-            background: 'white',
-            borderRadius: '8px',
-            marginBottom: '5px'
-          }}>
-            <CheckCircle size={16} color={cores.verdePimenta} />
-            <span style={{ color: '#666' }}>{rec}</span>
-          </div>
-        ))}
-      </motion.div>
+      )}
     </div>
   );
 }
@@ -295,6 +514,6 @@ const ocorrenciaCardStyle = {
   padding: '15px',
   background: 'white',
   borderRadius: '12px',
-  border: `1px solid ${cores.verdeClaro}`,
-  marginBottom: '10px'
+  marginBottom: '10px',
+  transition: 'all 0.2s'
 };

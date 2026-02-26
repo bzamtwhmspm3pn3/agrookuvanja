@@ -23,6 +23,8 @@ import RecomendacoesIA from './AgroOkuvanja/RecomendacoesIA';
 import RelatoriosColheita from './AgroOkuvanja/RelatoriosColheita';
 import ConfiguracaoCameras from './AgroOkuvanja/ConfiguracaoCameras';
 import vozService from '../services/vozService';
+import { deteccaoApi } from '../services/deteccaoApi';
+import logoAgrookuvanja from '../assets/logoagrookuvanja.jpeg';
 
 const cores = {
   verdeAlface: '#1A4D2E',
@@ -117,6 +119,8 @@ function NomePraga({ classe, confidence, mostrarConfianca = true }) {
     return cores.verdeAlface;
   };
 
+
+
   const nome = nomesPortugues[classe?.toLowerCase()] || classe || 'Praga não identificada';
 
   return (
@@ -150,23 +154,6 @@ function NomePraga({ classe, confidence, mostrarConfianca = true }) {
 // ===== COMPONENTE DE ESTATÍSTICAS EM TEMPO REAL =====
 function EstatisticasReais({ dados }) {
   if (!dados) return null;
-
-  // Contar pragas por categoria
-  const pragasPorCategoria = {
-    roedores: 0,
-    aves: 0,
-    insetos: 0
-  };
-
-  dados.ultimasPragas?.forEach(praga => {
-    if (praga.class?.toLowerCase().includes('rat') || praga.class?.toLowerCase().includes('mouse')) {
-      pragasPorCategoria.roedores++;
-    } else if (praga.class?.toLowerCase().includes('bird') || praga.class?.toLowerCase().includes('pigeon')) {
-      pragasPorCategoria.aves++;
-    } else {
-      pragasPorCategoria.insetos++;
-    }
-  });
 
   return (
     <div style={{
@@ -222,36 +209,6 @@ function EstatisticasReais({ dados }) {
           </span>
         </div>
       </div>
-
-      {/* Distribuição por categoria */}
-      {(pragasPorCategoria.roedores > 0 || pragasPorCategoria.aves > 0 || pragasPorCategoria.insetos > 0) && (
-        <div style={{
-          display: 'flex',
-          gap: '20px',
-          padding: '15px',
-          background: cores.cinzaClaro,
-          borderRadius: '12px'
-        }}>
-          {pragasPorCategoria.roedores > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Rat size={16} color={cores.marrom} />
-              <span><strong>{pragasPorCategoria.roedores}</strong> Roedores</span>
-            </div>
-          )}
-          {pragasPorCategoria.aves > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Bird size={16} color={cores.amarelo} />
-              <span><strong>{pragasPorCategoria.aves}</strong> Aves</span>
-            </div>
-          )}
-          {pragasPorCategoria.insetos > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Bug size={16} color={cores.azul} />
-              <span><strong>{pragasPorCategoria.insetos}</strong> Insetos</span>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -283,8 +240,6 @@ function GraficoTendencias({ historico }) {
   const datas = Object.keys(dadosAgrupados).slice(-7);
   const valoresPragas = datas.map(d => dadosAgrupados[d].total);
   const valoresPerda = datas.map(d => dadosAgrupados[d].perda / 1000);
-  const pragasPorData = datas.map(d => dadosAgrupados[d].pragas);
-
   const maxValor = Math.max(...valoresPragas, 1);
 
   return (
@@ -301,7 +256,6 @@ function GraficoTendencias({ historico }) {
       <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', height: '150px' }}>
         {datas.map((data, i) => {
           const altura = (valoresPragas[i] / maxValor) * 100;
-          const pragasHoje = pragasPorData[i] || [];
           
           return (
             <div key={i} style={{ 
@@ -309,40 +263,15 @@ function GraficoTendencias({ historico }) {
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center', 
-              gap: '5px',
-              position: 'relative'
+              gap: '5px'
             }}>
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <div style={{
                   width: '100%',
                   height: `${altura}px`,
                   background: `linear-gradient(to top, ${cores.verdeAlface}, ${cores.verdePimenta})`,
-                  borderRadius: '4px 4px 0 0',
-                  transition: 'height 0.3s',
-                  position: 'relative'
-                }}>
-                  {/* Tooltip com nomes das pragas */}
-                  {pragasHoje.length > 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '100%',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      background: cores.texto,
-                      color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '0.7rem',
-                      whiteSpace: 'nowrap',
-                      display: 'none',
-                      zIndex: 10
-                    }}>
-                      {pragasHoje.map((p, idx) => (
-                        <div key={idx}>{p.class}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                  borderRadius: '4px 4px 0 0'
+                }} />
                 {valoresPerda[i] > 0 && (
                   <div style={{
                     width: '100%',
@@ -623,6 +552,7 @@ function AcoesRapidas({ setAbaAtiva }) {
 // ===== COMPONENTE DE NAVEGAÇÃO LATERAL =====
 function Sidebar({ abaAtiva, setAbaAtiva, notificacoes }) {
   const [colapsado, setColapsado] = useState(false);
+  const [imagemErro, setImagemErro] = useState(false);
   
   const menuItems = [
     { id: 'resumo', icone: <LayoutDashboard size={20} />, label: 'Resumo', cor: cores.verdeAlface },
@@ -654,7 +584,7 @@ function Sidebar({ abaAtiva, setAbaAtiva, notificacoes }) {
         top: '20px'
       }}
     >
-      {/* Botão colapsar */}
+      {/* Botão de colapsar */}
       <button
         onClick={() => setColapsado(!colapsado)}
         style={{
@@ -677,7 +607,7 @@ function Sidebar({ abaAtiva, setAbaAtiva, notificacoes }) {
         <ChevronRight size={14} style={{ transform: colapsado ? 'rotate(180deg)' : 'none' }} />
       </button>
 
-      {/* Logo */}
+      {/* Logo com imagem real */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -688,29 +618,50 @@ function Sidebar({ abaAtiva, setAbaAtiva, notificacoes }) {
         <div style={{
           width: 40,
           height: 40,
-          background: cores.verdeAlface,
           borderRadius: 12,
+          overflow: 'hidden',
+          border: `2px solid ${cores.verdePimenta}`,
+          boxShadow: `0 2px 8px ${cores.verdeAlface}40`,
+          background: cores.verdeAlface,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'white',
-          fontSize: '20px'
+          fontSize: imagemErro ? '20px' : '0',
+          color: 'white'
         }}>
-          🌱
+          {!imagemErro ? (
+            <img 
+              src={logoAgrookuvanja} 
+              alt="AgroOkuvanja" 
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+              onError={() => setImagemErro(true)}
+            />
+          ) : (
+            '🌱'
+          )}
         </div>
+        
         {!colapsado && (
           <motion.span
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            style={{ fontWeight: 'bold', color: cores.verdeAlface }}
+            style={{ 
+              fontWeight: 'bold', 
+              color: cores.verdeAlface,
+              fontSize: '18px'
+            }}
           >
-            AGROOKUVANJA
+            AGRO<span style={{ color: cores.verdePimenta }}>OKUVANJA</span>
           </motion.span>
         )}
       </div>
 
-      {/* Menu */}
+      {/* Itens do menu */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {menuItems.map(item => (
           <motion.button
@@ -763,7 +714,7 @@ function Sidebar({ abaAtiva, setAbaAtiva, notificacoes }) {
         ))}
       </div>
 
-      {/* Rodapé do menu */}
+      {/* Assistente de voz */}
       <div style={{
         marginTop: '32px',
         padding: '16px 8px',
@@ -792,12 +743,10 @@ function Sidebar({ abaAtiva, setAbaAtiva, notificacoes }) {
   );
 }
 
-// ===== COMPONENTE PRINCIPAL =====
+// ===== DASHBOARD PRINCIPAL =====
 export default function Dashboard({ user }) {
+  // Estados principais
   const [abaAtiva, setAbaAtiva] = useState('resumo');
-  const [loading, setLoading] = useState(true);
-  
-  // Estados para dados reais dos componentes
   const [deteccoes, setDeteccoes] = useState([]);
   const [metricas, setMetricas] = useState([]);
   const [recomendacoes, setRecomendacoes] = useState([]);
@@ -810,91 +759,166 @@ export default function Dashboard({ user }) {
     ia: 0
   });
 
-  // Calcular estatísticas agregadas dos dados reais
-  const estatisticas = {
-    totalScans: deteccoes.length,
-    totalPragas: deteccoes.reduce((acc, d) => acc + (d.total_count || 0), 0),
-    perdaTotal: deteccoes.reduce((acc, d) => acc + (d.perdaEstimada || 0), 0),
-    areaTotal: deteccoes.reduce((acc, d) => {
-      const area = parseFloat(d.areaAfetada) || 0;
-      return acc + area;
-    }, 0)
-  };
+  // ===== HANDLERS PARA RECEBER DADOS DOS COMPONENTES FILHOS =====
 
-  // Handlers para receber dados dos componentes filhos
   const handleNovaDeteccao = (dados) => {
-    setDeteccoes(prev => [dados, ...prev].slice(0, 50));
+    console.log('📥 Nova deteção recebida:', dados);
+    setDeteccoes(prev => [dados, ...prev].slice(0, 100));
     setNotificacoes(prev => ({ ...prev, deteccao: prev.deteccao + 1 }));
+    
+    try {
+      const historico = JSON.parse(localStorage.getItem('agrookuvanja_deteccoes') || '[]');
+      const novoHistorico = [dados, ...historico].slice(0, 100);
+      localStorage.setItem('agrookuvanja_deteccoes', JSON.stringify(novoHistorico));
+    } catch (error) {
+      console.error('Erro ao guardar no localStorage:', error);
+    }
+    
+    if (dados.detections) {
+      dados.detections.forEach(det => {
+        const classe = det.class?.toLowerCase() || '';
+        const classPt = det.class_pt?.toLowerCase() || '';
+        
+        if (classe.includes('rat') || classe.includes('mouse') || classPt.includes('rato') || classPt.includes('ratazana')) {
+          setNotificacoes(prev => ({ ...prev, roedores: prev.roedores + 1 }));
+        } else if (classe.includes('bird') || classe.includes('pigeon') || classPt.includes('pássaro') || classPt.includes('ave')) {
+          setNotificacoes(prev => ({ ...prev, aves: prev.aves + 1 }));
+        }
+      });
+    }
+    
+    if (dados.nivelRisco === 'ALTO' || dados.nivelRisco === 'CRÍTICO') {
+      handleNovoAlertaMapa(dados);
+    }
   };
 
   const handleAtualizarMetricas = (dados) => {
+    console.log('📊 Novas métricas:', dados);
     setMetricas(prev => [dados, ...prev].slice(0, 100));
   };
 
   const handleNovasRecomendacoes = (dados) => {
+    console.log('💡 Novas recomendações:', dados);
     if (dados?.recomendacoes) {
-      setRecomendacoes(prev => [...dados.recomendacoes, ...prev].slice(0, 20));
+      setRecomendacoes(prev => [...dados.recomendacoes, ...prev].slice(0, 50));
       setNotificacoes(prev => ({ ...prev, ia: prev.ia + dados.recomendacoes.length }));
     }
   };
 
   const handleNovoAlertaMapa = (dados) => {
-    setAlertasMapa(prev => [dados, ...prev].slice(0, 30));
+    console.log('🗺️ Novo alerta para mapa:', dados);
+    setAlertasMapa(prev => [dados, ...prev].slice(0, 50));
     setNotificacoes(prev => ({ ...prev, mapa: prev.mapa + 1 }));
+  };
+
+  const handleNovaDeteccaoCamera = (dados) => {
+    console.log('📹 Nova deteção de câmara:', dados);
+    setDeteccoes(prev => [dados, ...prev].slice(0, 100));
+    setNotificacoes(prev => ({ ...prev, deteccao: prev.deteccao + 1 }));
     
-    // Atualizar contadores específicos por tipo de praga
-    if (dados.pragas) {
-      dados.pragas.forEach(praga => {
-        if (praga.class?.toLowerCase().includes('rat')) {
+    try {
+      const historico = JSON.parse(localStorage.getItem('agrookuvanja_deteccoes') || '[]');
+      const novoHistorico = [dados, ...historico].slice(0, 100);
+      localStorage.setItem('agrookuvanja_deteccoes', JSON.stringify(novoHistorico));
+    } catch (error) {
+      console.error('Erro ao guardar no localStorage:', error);
+    }
+    
+    if (dados.detections) {
+      dados.detections.forEach(det => {
+        const classe = det.class?.toLowerCase() || '';
+        const classPt = det.class_pt?.toLowerCase() || '';
+        
+        if (classe.includes('rat') || classe.includes('mouse') || classPt.includes('rato') || classPt.includes('ratazana')) {
           setNotificacoes(prev => ({ ...prev, roedores: prev.roedores + 1 }));
-        } else if (praga.class?.toLowerCase().includes('bird')) {
+        } else if (classe.includes('bird') || classe.includes('pigeon') || classPt.includes('pássaro') || classPt.includes('ave')) {
           setNotificacoes(prev => ({ ...prev, aves: prev.aves + 1 }));
         }
       });
     }
   };
 
+  // ===== CARREGAR DADOS DO LOCALSTORAGE AO INICIAR =====
   useEffect(() => {
-    // Simular carregamento inicial
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
+    try {
+      const saved = localStorage.getItem('agrookuvanja_deteccoes');
+      if (saved) {
+        const historico = JSON.parse(saved);
+        setDeteccoes(historico);
+        
+        let roedores = 0;
+        let aves = 0;
+        
+        historico.forEach(d => {
+          if (d.detections) {
+            d.detections.forEach(det => {
+              const classe = det.class?.toLowerCase() || '';
+              const classPt = det.class_pt?.toLowerCase() || '';
+              
+              if (classe.includes('rat') || classe.includes('mouse') || classPt.includes('rato') || classPt.includes('ratazana')) {
+                roedores++;
+              } else if (classe.includes('bird') || classe.includes('pigeon') || classPt.includes('pássaro') || classPt.includes('ave')) {
+                aves++;
+              }
+            });
+          }
+        });
+        
+        setNotificacoes({
+          deteccao: historico.length,
+          roedores,
+          aves,
+          mapa: historico.filter(d => d.nivelRisco === 'ALTO' || d.nivelRisco === 'CRÍTICO').length,
+          ia: recomendacoes.length
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar localStorage:', error);
+    }
   }, []);
 
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '70vh',
-        flexDirection: 'column'
-      }}>
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-          style={{
-            width: 60,
-            height: 60,
-            border: `4px solid ${cores.verdeClaro}`,
-            borderTopColor: cores.verdePimenta,
-            borderRadius: '50%',
-            marginBottom: 20
-          }}
-        />
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{ color: cores.verdeAlface, fontSize: '1.1rem' }}
-        >
-          A preparar o teu dashboard...
-        </motion.p>
-      </div>
-    );
-  }
+  // ===== FILTROS PARA AS ABAS ESPECÍFICAS =====
+  
+  const apenasRoedores = deteccoes.filter(d => 
+    d.detections?.some(det => {
+      const classe = det.class?.toLowerCase() || '';
+      const classPt = det.class_pt?.toLowerCase() || '';
+      return classe.includes('rat') || classe.includes('mouse') || 
+             classPt.includes('rato') || classPt.includes('ratazana');
+    })
+  );
+  
+  const apenasAves = deteccoes.filter(d => 
+    d.detections?.some(det => {
+      const classe = det.class?.toLowerCase() || '';
+      const classPt = det.class_pt?.toLowerCase() || '';
+      return classe.includes('bird') || classe.includes('pigeon') || 
+             classPt.includes('pássaro') || classPt.includes('ave');
+    })
+  );
 
-  // Renderizar conteúdo baseado na aba ativa
+  const alertasRoedores = alertasMapa.filter(a => 
+    a.pragas?.some(p => {
+      const classe = p.class?.toLowerCase() || '';
+      const classPt = p.class_pt?.toLowerCase() || '';
+      return classe.includes('rat') || classe.includes('mouse') || 
+             classPt.includes('rato') || classPt.includes('ratazana');
+    })
+  );
+  
+  const alertasAves = alertasMapa.filter(a => 
+    a.pragas?.some(p => {
+      const classe = p.class?.toLowerCase() || '';
+      const classPt = p.class_pt?.toLowerCase() || '';
+      return classe.includes('bird') || classe.includes('pigeon') || 
+             classPt.includes('pássaro') || classPt.includes('ave');
+    })
+  );
+
+  // ===== RENDERIZAR CONTEÚDO BASEADO NA ABA ATIVA =====
   const renderConteudo = () => {
     switch(abaAtiva) {
+      
       case 'deteccao':
         return (
           <DeteccaoPragas
@@ -908,23 +932,38 @@ export default function Dashboard({ user }) {
         );
       
       case 'roedores':
-        return <GestaoRoedores alertas={alertasMapa.filter(a => 
-          a.pragas?.some(p => p.class?.toLowerCase().includes('rat'))
-        )} />;
+        return (
+          <GestaoRoedores
+            deteccoesExternas={apenasRoedores}
+            monitoramentos={[]}
+            alertasMapa={alertasRoedores}
+          />
+        );
       
       case 'aves':
-        return <GestaoAves alertas={alertasMapa.filter(a => 
-          a.pragas?.some(p => p.class?.toLowerCase().includes('bird'))
-        )} />;
-      
-      case 'mapa':
-        return <MapaRisco alertas={alertasMapa} />;
+        return (
+          <GestaoAves
+            deteccoesExternas={apenasAves}
+            monitoramentos={[]}
+            alertasMapa={alertasAves}
+          />
+        );
       
       case 'metricas':
-        return <MetricasProducao dados={metricas} />;
+  return <MetricasProducao 
+    deteccoes={deteccoes}  
+    onAtualizarDashboard={() => {}}
+  />;
+      
+          case 'mapa':
+  return <MapaRisco 
+    deteccoes={deteccoes}  
+    onAtualizarDashboard={() => {}}
+  />;
+
       
       case 'monitoramento':
-        return <MonitoramentoCampo />;
+        return <MonitoramentoCampo onNovaDeteccao={handleNovaDeteccao} />;
       
       case 'ia':
         return <RecomendacoesIA recomendacoes={recomendacoes} />;
@@ -933,14 +972,86 @@ export default function Dashboard({ user }) {
         return <RelatoriosColheita deteccoes={deteccoes} />;
       
       case 'cameras':
-        return <ConfiguracaoCameras />;
+        return (
+          <ConfiguracaoCameras
+            onAtualizarDashboard={() => {}}
+            onDeteccaoGeral={handleNovaDeteccaoCamera}
+            onAtualizarMapaRisco={handleNovoAlertaMapa}
+            onDeteccaoRoedor={(dados) => setNotificacoes(prev => ({ ...prev, roedores: prev.roedores + 1 }))}
+            onDeteccaoAve={(dados) => setNotificacoes(prev => ({ ...prev, aves: prev.aves + 1 }))}
+          />
+        );
       
       default:
         return (
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            {/* Estatísticas em tempo real */}
-            <EstatisticasReais dados={estatisticas} />
             
+            {/* Cabeçalho de boas-vindas */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                background: `linear-gradient(135deg, ${cores.verdeAlface} 0%, ${cores.verdePimenta} 100%)`,
+                borderRadius: '24px',
+                padding: '30px',
+                marginBottom: '25px',
+                color: 'white',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <div style={{ position: 'relative', zIndex: 2 }}>
+                <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '10px' }}>
+                  Olá, {user?.username || 'Agricultor'}! 👋
+                </h1>
+                <p style={{ fontSize: '1.1rem', opacity: 0.9 }}>
+                  Bem-vindo ao AgroOkuvanja. Aqui está o resumo da sua plantação.
+                </p>
+              </div>
+              
+              {[...Array(5)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  animate={{
+                    y: [0, -20, 0],
+                    x: [0, 10, 0],
+                    rotate: [0, 360, 0]
+                  }}
+                  transition={{
+                    duration: 10 + i,
+                    repeat: Infinity,
+                    delay: i * 2
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: `${10 + i * 10}%`,
+                    bottom: `${10 + i * 5}%`,
+                    fontSize: `${40 + i * 20}px`,
+                    opacity: 0.1,
+                    pointerEvents: 'none',
+                    zIndex: 1
+                  }}
+                >
+                  {['🌱', '🌿', '🌾', '🌽', '🍃'][i % 5]}
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* Cards de estatísticas com dados reais */}
+            <EstatisticasReais 
+              dados={{
+                totalScans: deteccoes.length,
+                totalPragas: deteccoes.reduce((acc, d) => acc + (d.total_count || 0), 0),
+                perdaTotal: deteccoes.reduce((acc, d) => acc + (d.perdaEstimada || 0), 0),
+                areaTotal: deteccoes.reduce((acc, d) => {
+                  const area = parseFloat(d.areaAfetada) || 0;
+                  return acc + area;
+                }, 0),
+                roedores: apenasRoedores.length,
+                aves: apenasAves.length
+              }} 
+            />
+
             {/* Grid de gráficos e alertas */}
             <div style={{
               display: 'grid',
@@ -949,9 +1060,9 @@ export default function Dashboard({ user }) {
               marginBottom: '20px'
             }}>
               <GraficoTendencias historico={deteccoes} />
-              <AlertasRecentes alertas={deteccoes.filter(d => d.total_count > 1)} />
+              <AlertasRecentes alertas={deteccoes.filter(d => d.total_count > 0)} />
             </div>
-            
+
             {/* Grid de últimas deteções e recomendações */}
             <div style={{
               display: 'grid',
@@ -961,54 +1072,64 @@ export default function Dashboard({ user }) {
               <UltimasDetecoes detecoes={deteccoes} />
               <RecomendacoesAtivas recomendacoes={recomendacoes} />
             </div>
-            
+
             {/* Ações rápidas */}
             <AcoesRapidas setAbaAtiva={setAbaAtiva} />
-            
+
             {/* Mensagem quando não há dados */}
             {deteccoes.length === 0 && (
-              <div style={{
-                marginTop: '20px',
-                padding: '30px',
-                background: 'white',
-                borderRadius: '24px',
-                border: `1px solid ${cores.verdeClaro}`,
-                textAlign: 'center',
-                color: cores.textoClaro
-              }}>
-                <Camera size={48} style={{ marginBottom: '15px', opacity: 0.5 }} />
-                <h3>Nenhuma deteção realizada ainda</h3>
-                <p style={{ marginTop: '10px' }}>
-                  Comece por fazer uma deteção de pragas para ver os dados aqui
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  marginTop: '30px',
+                  padding: '50px',
+                  background: 'white',
+                  borderRadius: '24px',
+                  border: `2px dashed ${cores.verdeClaro}`,
+                  textAlign: 'center'
+                }}
+              >
+                <Camera size={64} color={cores.verdePimenta} style={{ marginBottom: '20px' }} />
+                <h3 style={{ fontSize: '1.5rem', color: cores.verdeAlface, marginBottom: '10px' }}>
+                  Nenhuma deteção realizada ainda
+                </h3>
+                <p style={{ color: cores.textoClaro, maxWidth: '500px', margin: '0 auto 20px' }}>
+                  Comece por fazer uma deteção de pragas para ver estatísticas e recomendações personalizadas.
                 </p>
                 <button
                   onClick={() => setAbaAtiva('deteccao')}
                   style={{
-                    marginTop: '20px',
                     padding: '12px 30px',
-                    background: cores.verdeAlface,
-                    color: 'white',
+                    background: cores.verdePimenta,
+                    color: cores.verdeAlface,
                     border: 'none',
                     borderRadius: '30px',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
                     cursor: 'pointer',
-                    fontWeight: 'bold'
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '10px'
                   }}
                 >
+                  <Camera size={20} />
                   Fazer Primeira Deteção
                 </button>
-              </div>
+              </motion.div>
             )}
           </div>
         );
     }
   };
 
+  // ===== RENDERIZAÇÃO PRINCIPAL =====
   return (
-    <div style={{
-      display: 'flex',
-      gap: '24px',
-      maxWidth: '1600px',
-      margin: '0 auto',
+    <div style={{ 
+      display: 'flex', 
+      gap: '24px', 
+      maxWidth: '1600px', 
+      margin: '0 auto', 
       padding: '20px',
       minHeight: '100vh'
     }}>
@@ -1019,8 +1140,8 @@ export default function Dashboard({ user }) {
         notificacoes={notificacoes}
       />
 
-      {/* Conteúdo principal */}
-      <main style={{ flex: 1, minHeight: '100%' }}>
+      {/* Conteúdo Principal */}
+      <main style={{ flex: 1 }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={abaAtiva}
